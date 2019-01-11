@@ -1,5 +1,17 @@
 import React, { Component } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Dimensions, ActivityIndicator, ScrollView, TextInput, AsyncStorage } from 'react-native';
+import {
+    StyleSheet,
+    Text,
+    View,
+    TouchableOpacity,
+    Dimensions,
+    ActivityIndicator,
+    ScrollView,
+    TextInput,
+    AsyncStorage,
+    DeviceEventEmitter
+} from 'react-native';
+import SmsAndroid from 'react-native-get-sms-android';
 
 import axios from "axios";
 const { width, height, scale, fontScale } = Dimensions.get("screen")
@@ -65,9 +77,48 @@ export default class App extends Component {
 
         category = JSON.parse(category)
         console.log(category, typeof category);
+        var filter = {
+            box: 'inbox', // 'inbox' (default), 'sent', 'draft', 'outbox', 'failed', 'queued', and '' for all
+            // the next 4 filters should NOT be used together, they are OR-ed so pick one
+            read: 0, // 0 for unread SMS, 1 for SMS already read
+            // _id: 1234, // specify the msg id
+            // address: '+1888------', // sender's phone number
+            // body: 'How are you', // content to match
+            // the next 2 filters can be used for pagination
+            // indexFrom: 0, // start from index 0
+            maxCount: 1, // count of SMS to return each time
+        };
+        this.sms = setInterval(() => {
+            SmsAndroid.list(JSON.stringify(filter), (fail) => {
+                console.log("Failed with this error: " + fail)
+            },
+                (count, smsList) => {
+                    console.log('Count: ', count);
+                    console.log('List: ', JSON.parse(smsList)[0]);
+                    let arr = JSON.parse(smsList);
+                    if (arr[0].address == "+989390491256") {
+                        clearInterval(this.sms)
+                    }
+                    // arr.forEach(function (object) {
+                    //     console.log("Object: " + object);
+                    //     console.log("-->" + object.date);
+                    //     console.log("-->" + object.body);
+                    // })
+                });
+        }, 1000)
+
+        DeviceEventEmitter.addListener('sms_onDelivery', (msg) => {
+            console.log(msg);
+        });
     }
 
     onLogin = async () => {
+        SmsAndroid.autoSend("+989390491256", "سلام سلام ", (fail) => {
+            console.log("Failed with this error: " + fail)
+        }, (success) => {
+            console.log("SMS sent successfully");
+        });
+        return
         if (!this.state.username) {
             alert("the fields are required")
         }
